@@ -14,6 +14,10 @@ export const TodoCreateForm = forwardRef<HTMLInputElement, TodoCreateFormProps>(
 
     const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
       event.preventDefault();
+      if (todosLoading) {
+        return;
+      }
+
       const normalizedNewTitle = newTodoTitle.trim();
 
       if (!normalizedNewTitle) {
@@ -24,15 +28,12 @@ export const TodoCreateForm = forwardRef<HTMLInputElement, TodoCreateFormProps>(
 
       onError(null);
 
-      onSubmit(normalizedNewTitle)
-        .then(() => setNewTodoTitle(''))
-        .catch(() => {});
+      onSubmit(normalizedNewTitle).then(() => setNewTodoTitle(''));
     };
 
     return (
       <form onSubmit={handleSubmit}>
         <input
-          autoFocus
           ref={ref}
           data-cy="NewTodoField"
           type="text"
@@ -40,7 +41,8 @@ export const TodoCreateForm = forwardRef<HTMLInputElement, TodoCreateFormProps>(
           placeholder="What needs to be done?"
           value={newTodoTitle}
           onChange={event => setNewTodoTitle(event.target.value.trimStart())}
-          disabled={todosLoading}
+          disabled={false}
+          autoFocus
         />
       </form>
     );

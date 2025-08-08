@@ -17,6 +17,8 @@ import { TodoItem } from './components/TodoItem';
 import { StatusFilterOptions } from './types/StatusFilterOptions';
 import { FilterByStatus } from './components/FilterByStatus';
 import { TodoCreateForm } from './components/TodoCreateForm';
+import { TodoModify } from './types/TodoModify';
+import cn from 'classnames';
 
 interface GetFilteredTodosFilter {
   status: StatusFilterOptions;
@@ -38,7 +40,7 @@ const getFilteredTodos = (todos: Todo[], filter: GetFilteredTodosFilter) => {
 
 export const App: React.FC = () => {
   const [todos, setTodos] = useState<Todo[]>([]);
-  const [todosLoading, setTodosLoading] = useState(false);
+  const [todosLoading, setTodosLoading] = useState(true);
 
   const [errorMessage, setErrorMessage] = useState<ErrorMessages | null>(null);
 
@@ -66,6 +68,9 @@ export const App: React.FC = () => {
 
     loadTodos();
   }, []);
+
+  const completedTodos = todos.filter(todo => todo.completed);
+  const activeTodosAmount = todos.length - completedTodos.length;
 
   const handleCreateTodo = useCallback(
     async (title: Todo['title']): Promise<Todo> => {
@@ -117,33 +122,56 @@ export const App: React.FC = () => {
       }
     } catch (error) {
       setErrorMessage(ErrorMessages.DeleteTodo);
+      throw new Error(ErrorMessages.DeleteTodo);
     } finally {
       setProcessingTodoIds(current => current.filter(id => id !== todoId));
     }
   }, []);
 
   const handleUpdateTodo = useCallback(
-    async (todoToUpdate: Todo): Promise<void> => {
-      setProcessingTodoIds(prev => [...prev, todoToUpdate.id]);
+    (todoId: Todo['id'], modifiedTodo: TodoModify) => {
+      setProcessingTodoIds(prev => [...prev, todoId]);
 
-      try {
-        const updatedTodo = await updateTodo(todoToUpdate);
-
-        setTodos(prev =>
-          prev.map(todo => (todo.id === updatedTodo.id ? updatedTodo : todo)),
-        );
-      } catch (error) {
-        setErrorMessage(ErrorMessages.UpdateTodo);
-        throw error;
-      } finally {
-        setProcessingTodoIds(prev => prev.filter(id => id !== todoToUpdate.id));
-      }
+      return updateTodo(todoId, modifiedTodo)
+        .then(updatedTodo => {
+          setTodos(current =>
+            current.map(todo => {
+              return todo.id === updatedTodo.id ? updatedTodo : todo;
+            }),
+          );
+        })
+        .catch(() => {
+          setErrorMessage(ErrorMessages.UpdateTodo);
+          throw new Error(ErrorMessages.UpdateTodo);
+        })
+        .finally(() => {
+          setProcessingTodoIds(current => current.filter(id => id !== todoId));
+        });
     },
-    [setTodos, setProcessingTodoIds, setErrorMessage],
+    [],
   );
 
-  const completedTodos = todos.filter(todo => todo.completed);
-  const activeTodos = todos.length - completedTodos.length;
+  const handleToggleAllStatus = useCallback(() => {
+    const activeTodos = todos.filter(todo => !todo.completed);
+
+    if (activeTodos.length) {
+      activeTodos.forEach(activeTodo => {
+        handleUpdateTodo(activeTodo.id, {
+          completed: true,
+          title: activeTodo.title,
+          userId: activeTodo.userId,
+        });
+      });
+    } else {
+      todos.forEach(todo => {
+        handleUpdateTodo(todo.id, {
+          completed: !todo.completed,
+          title: todo.title,
+          userId: todo.userId,
+        });
+      });
+    }
+  }, [todos, handleUpdateTodo]);
 
   const handleClearCompleted = useCallback(() => {
     completedTodos.forEach(completedTodo => {
@@ -169,11 +197,17 @@ export const App: React.FC = () => {
 
       <div className="todoapp__content">
         <header className="todoapp__header">
-          <button
-            type="button"
-            className="todoapp__toggle-all active"
-            data-cy="ToggleAllButton"
-          />
+          {!todosLoading && todos.length > 0 && (
+            <button
+              type="button"
+              className={cn('todoapp__toggle-all', {
+                active:
+                  todos.length > 0 && todos.length === completedTodos.length,
+              })}
+              data-cy="ToggleAllButton"
+              onClick={handleToggleAllStatus}
+            />
+          )}
 
           <TodoCreateForm
             ref={createFormRef}
@@ -200,7 +234,7 @@ export const App: React.FC = () => {
                 <TodoItem
                   todo={temporaryTodo}
                   onDeleteTodo={() => {}}
-                  onUpdateTodo={() => {}}
+                  onUpdateTodo={async () => {}}
                   isLoading
                 />
               )}
@@ -209,7 +243,7 @@ export const App: React.FC = () => {
             {showFooter && (
               <footer className="todoapp__footer" data-cy="Footer">
                 <span className="todo-count" data-cy="TodosCounter">
-                  {activeTodos} items left
+                  {activeTodosAmount} items left
                 </span>
 
                 <FilterByStatus
