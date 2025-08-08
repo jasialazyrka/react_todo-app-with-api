@@ -14,6 +14,10 @@ export const ErrorNotification = ({
   onHideError,
 }: ErrorNotificationProps) => {
   useEffect(() => {
+    if (!errorMessage) {
+      return;
+    }
+
     const timer = setTimeout(() => {
       onHideError();
     }, ERROR_DURATION);

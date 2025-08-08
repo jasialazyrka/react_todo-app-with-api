@@ -1,6 +1,7 @@
 import { Dispatch, forwardRef, SetStateAction, useState } from 'react';
 import { ErrorMessages } from '../types/ErrorMessages';
 import { Todo } from '../types/Todo';
+import { useCallback } from 'react';
 
 interface TodoCreateFormProps {
   onSubmit: (title: string) => Promise<Todo>;
@@ -12,24 +13,27 @@ export const TodoCreateForm = forwardRef<HTMLInputElement, TodoCreateFormProps>(
   ({ onSubmit, onError, todosLoading }, ref) => {
     const [newTodoTitle, setNewTodoTitle] = useState<string>('');
 
-    const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-      event.preventDefault();
-      if (todosLoading) {
-        return;
-      }
+    const handleSubmit = useCallback(
+      (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        if (todosLoading) {
+          return;
+        }
 
-      const normalizedNewTitle = newTodoTitle.trim();
+        const normalizedNewTitle = newTodoTitle.trim();
 
-      if (!normalizedNewTitle) {
-        onError(ErrorMessages.EmptyTitle);
+        if (!normalizedNewTitle) {
+          onError(ErrorMessages.EmptyTitle);
 
-        return;
-      }
+          return;
+        }
 
-      onError(null);
+        onError(null);
 
-      onSubmit(normalizedNewTitle).then(() => setNewTodoTitle(''));
-    };
+        onSubmit(normalizedNewTitle).then(() => setNewTodoTitle(''));
+      },
+      [todosLoading, newTodoTitle, onError, onSubmit],
+    );
 
     return (
       <form onSubmit={handleSubmit}>

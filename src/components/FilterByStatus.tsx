@@ -16,7 +16,7 @@ export const FilterByStatus = ({
       {Object.entries(StatusFilterOptions).map(([text, value]) => (
         <a
           key={value}
-          href={`#/${value !== 'all' ? value : ''}`}
+          href={`#/${value !== StatusFilterOptions.All ? value : ''}`}
           className={classNames('filter__link', {
             selected: statusFilter === value,
           })}
