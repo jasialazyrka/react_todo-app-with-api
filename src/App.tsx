@@ -29,9 +29,14 @@ const getFilteredTodos = (todos: Todo[], filter: GetFilteredTodosFilter) => {
 
   if (filter.status !== StatusFilterOptions.All) {
     filteredTodos = filteredTodos.filter(todo => {
-      return filter.status === StatusFilterOptions.Completed
-        ? todo.completed
-        : !todo.completed;
+      switch (filter.status) {
+        case StatusFilterOptions.Completed:
+          return todo.completed;
+        case StatusFilterOptions.Active:
+          return !todo.completed;
+        default:
+          return true;
+      }
     });
   }
 
@@ -40,7 +45,7 @@ const getFilteredTodos = (todos: Todo[], filter: GetFilteredTodosFilter) => {
 
 export const App: React.FC = () => {
   const [todos, setTodos] = useState<Todo[]>([]);
-  const [todosLoading, setTodosLoading] = useState(true);
+  const [todosLoading, setTodosLoading] = useState<boolean>(false);
 
   const [errorMessage, setErrorMessage] = useState<ErrorMessages | null>(null);
 
@@ -56,6 +61,8 @@ export const App: React.FC = () => {
   useEffect(() => {
     async function loadTodos() {
       try {
+        setTodosLoading(true);
+        setErrorMessage(null);
         const data = await getTodos();
 
         setTodos(data);
